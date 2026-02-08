@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <title>GymFlow - Your Personal Workout Guide</title>
+  <meta name="description" content="Select muscle groups and get personalized exercise recommendations with detailed instructions">
+  
+  <!-- App Icons -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+    
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      overscroll-behavior: none;
+      margin: 0;
+      padding: 0;
+    }
+    
+    #root {
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const { Dumbbell, Target, PlayCircle, AlertCircle, ChevronRight, Home, List, Info } = lucide;
+
+    // Comprehensive exercise database
+    const EXERCISES = {
+      chest: [
+        {
+          id: 'bench-press',
+          name: 'Barbell Bench Press',
+          difficulty: 'Intermediate',
+          equipment: 'Barbell, Bench',
+          instructions: [
+            'Lie flat on the bench with feet planted firmly on the ground',
+            'Grip the bar slightly wider than shoulder-width apart',
+            'Unrack the bar and hold it directly above your chest with arms extended',
+            'Lower the bar slowly to your mid-chest, keeping elbows at 45-degree angle',
+            'Press the bar back up explosively to starting position',
+            'Maintain natural arch in lower back throughout movement'
+          ],
+          tips: [
+            'Keep your shoulder blades retracted and pressed into the bench',
+            'Don\'t bounce the bar off your chest - maintain control',
+            'Breathe in on the descent, exhale forcefully on the press',
+            'Keep wrists straight and stacked over elbows'
+          ],
+          video: 'https://youtube.com/watch?v=rT7DgCr-3pg',
+          targetMuscles: ['Pectoralis Major', 'Anterior Deltoids', 'Triceps'],
+          sets: '3-4 sets of 6-10 reps'
+        },
+        {
+          id: 'push-ups',
+          name: 'Push-Ups',
+          difficulty: 'Beginner',
+          equipment: 'Bodyweight',
+          instructions: [
+            'Start in plank position with hands slightly wider than shoulders',
+            'Keep body in a straight line from head to heels',
+            'Lower your body until chest nearly touches the ground',
+            'Keep elbows at 45-degree angle to body',
+            'Push back up to starting position',
+            'Maintain core engagement throughout'
+          ],
+          tips: [
+            'Don\'t let hips sag or pike up',
+            'Look slightly ahead, not straight down',
+            'Full range of motion is key - chest should come close to ground',
+            'If too difficult, start with knees on ground or hands elevated'
+          ],
+          video: 'https://youtube.com/watch?v=IODxDxX7oi4',
+          targetMuscles: ['Pectoralis Major', 'Triceps', 'Anterior Deltoids', 'Core'],
+          sets: '3-4 sets to failure'
+        },
+        {
+          id: 'dumbbell-flyes',
+          name: 'Dumbbell Chest Flyes',
+          difficulty: 'Intermediate',
+          equipment: 'Dumbbells, Bench',
+          instructions: [
+            'Lie on flat bench holding dumbbells above chest with slight bend in elbows',
+            'Keep palms facing each other',
+            'Lower dumbbells in wide arc until you feel stretch in chest',
+            'Maintain slight bend in elbows throughout movement',
+            'Bring dumbbells back together over chest, squeezing chest muscles',
+            'Don\'t let dumbbells touch at top'
+          ],
+          tips: [
+            'Focus on the stretch - this is an isolation exercise',
+            'Use lighter weight than pressing movements',
+            'Keep movement slow and controlled',
+            'Imagine hugging a large barrel'
+          ],
+          video: 'https://youtube.com/watch?v=eozdVDA78K0',
+          targetMuscles: ['Pectoralis Major', 'Anterior Deltoids'],
+          sets: '3-4 sets of 10-15 reps'
+        }
+      ],
+      back: [
+        {
+          id: 'deadlift',
+          name: 'Conventional Deadlift',
+          difficulty: 'Advanced',
+          equipment: 'Barbell',
+          instructions: [
+            'Stand with feet hip-width apart, bar over mid-foot',
+            'Bend down and grip bar just outside your legs',
+            'Chest up, shoulders back, spine neutral',
+            'Drive through heels, keeping bar close to shins',
+            'Stand up fully by extending hips and knees simultaneously',
+            'Lower bar with control by pushing hips back first'
+          ],
+          tips: [
+            'Keep bar path vertical - it should travel in straight line',
+            'Don\'t round your back - this is critical for safety',
+            'Engage lats by "pulling bar into shins"',
+            'Brace core hard before each rep'
+          ],
+          video: 'https://youtube.com/watch?v=op9kVnSso6Q',
+          targetMuscles: ['Erector Spinae', 'Lats', 'Traps', 'Glutes', 'Hamstrings'],
+          sets: '3-5 sets of 3-6 reps'
+        },
+        {
+          id: 'pull-ups',
+          name: 'Pull-Ups',
+          difficulty: 'Intermediate',
+          equipment: 'Pull-up Bar',
+          instructions: [
+            'Hang from bar with hands slightly wider than shoulders, palms facing away',
+            'Start from dead hang with arms fully extended',
+            'Engage lats and pull shoulder blades down and back',
+            'Pull yourself up until chin clears the bar',
+            'Lower with control back to dead hang',
+            'Avoid swinging or using momentum'
+          ],
+          tips: [
+            'Think about pulling elbows down to floor, not pulling yourself up',
+            'Keep core tight to prevent swinging',
+            'Full range of motion is essential',
+            'Use resistance band for assistance if needed'
+          ],
+          video: 'https://youtube.com/watch?v=eGo4IYlbE5g',
+          targetMuscles: ['Latissimus Dorsi', 'Biceps', 'Rhomboids', 'Rear Deltoids'],
+          sets: '3-4 sets to failure'
+        },
+        {
+          id: 'barbell-row',
+          name: 'Bent-Over Barbell Row',
+          difficulty: 'Intermediate',
+          equipment: 'Barbell',
+          instructions: [
+            'Stand with feet shoulder-width apart, knees slightly bent',
+            'Hinge at hips until torso is roughly 45 degrees',
+            'Grip bar with hands just outside shoulders',
+            'Pull bar to lower chest/upper abdomen',
+            'Keep elbows close to body, squeeze shoulder blades together',
+            'Lower bar with control'
+          ],
+          tips: [
+            'Maintain flat back throughout - don\'t round spine',
+            'Pull with your back, not your arms',
+            'Don\'t stand up as you row - maintain hip angle',
+            'Touch the bar to your body on each rep'
+          ],
+          video: 'https://youtube.com/watch?v=FWJR5Ve8bnQ',
+          targetMuscles: ['Latissimus Dorsi', 'Rhomboids', 'Traps', 'Rear Deltoids'],
+          sets: '3-4 sets of 8-12 reps'
+        }
+      ],
+      shoulders: [
+        {
+          id: 'overhead-press',
+          name: 'Overhead Press',
+          difficulty: 'Intermediate',
+          equipment: 'Barbell',
+          instructions: [
+            'Start with bar at shoulder height, hands just outside shoulders',
+            'Stand with feet shoulder-width apart, core braced',
+            'Press bar straight overhead until arms are fully extended',
+            'Keep bar path vertical, moving your head back slightly to clear',
+            'Lock out overhead with biceps by ears',
+            'Lower bar with control back to shoulders'
+          ],
+          tips: [
+            'Don\'t lean back excessively - use core to stay upright',
+            'Press straight up, not forward',
+            'Squeeze glutes to prevent lower back arch',
+            'Full lockout at top is important'
+          ],
+          video: 'https://youtube.com/watch?v=2yjwXTZQDDI',
+          targetMuscles: ['Anterior Deltoids', 'Lateral Deltoids', 'Triceps', 'Upper Chest'],
+          sets: '3-4 sets of 6-10 reps'
+        },
+        {
+          id: 'lateral-raises',
+          name: 'Dumbbell Lateral Raises',
+          difficulty: 'Beginner',
+          equipment: 'Dumbbells',
+          instructions: [
+            'Stand with dumbbells at sides, slight bend in elbows',
+            'Keep core engaged and chest up',
+            'Raise dumbbells out to sides until arms parallel to ground',
+            'Lead with elbows, not hands',
+            'Pause briefly at top',
+            'Lower with control'
+          ],
+          tips: [
+            'Use lighter weight - this is an isolation exercise',
+            'Don\'t swing or use momentum',
+            'Imagine pouring water from pitchers at the top',
+            'Focus on controlled negative portion'
+          ],
+          video: 'https://youtube.com/watch?v=3VcKaXpzqRo',
+          targetMuscles: ['Lateral Deltoids'],
+          sets: '3-4 sets of 12-15 reps'
+        },
+        {
+          id: 'face-pulls',
+          name: 'Cable Face Pulls',
+          difficulty: 'Beginner',
+          equipment: 'Cable Machine with Rope',
+          instructions: [
+            'Set cable to upper chest height with rope attachment',
+            'Grab rope with overhand grip, thumbs toward you',
+            'Step back to create tension in cable',
+            'Pull rope toward your face, separating hands as you pull',
+            'Aim to pull hands past your ears',
+            'Squeeze shoulder blades together at the back',
+            'Return to start position with control'
+          ],
+          tips: [
+            'Focus on rear delts and upper back, not arms',
+            'Keep elbows high throughout movement',
+            'External rotation of shoulders is key',
+            'This exercise is great for shoulder health'
+          ],
+          video: 'https://youtube.com/watch?v=rep-qVOkqgk',
+          targetMuscles: ['Rear Deltoids', 'Rhomboids', 'Traps'],
+          sets: '3-4 sets of 15-20 reps'
+        }
+      ],
+      arms: [
+        {
+          id: 'barbell-curl',
+          name: 'Barbell Bicep Curl',
+          difficulty: 'Beginner',
+          equipment: 'Barbell',
+          instructions: [
+            'Stand with feet shoulder-width apart',
+            'Grip barbell with underhand grip at shoulder width',
+            'Keep elbows close to your sides',
+            'Curl bar up toward shoulders, squeezing biceps',
+            'Keep upper arms stationary',
+            'Lower bar with control to full extension'
+          ],
+          tips: [
+            'Don\'t swing or use momentum - strict form is key',
+            'Keep wrists straight',
+            'Full range of motion on both concentric and eccentric',
+            'Focus on the squeeze at top of movement'
+          ],
+          video: 'https://youtube.com/watch?v=kwG2ipFRgfo',
+          targetMuscles: ['Biceps Brachii', 'Brachialis', 'Forearms'],
+          sets: '3-4 sets of 8-12 reps'
+        },
+        {
+          id: 'tricep-dips',
+          name: 'Tricep Dips',
+          difficulty: 'Intermediate',
+          equipment: 'Dip Bars or Bench',
+          instructions: [
+            'Grip dip bars or bench edge, arms fully extended',
+            'Keep body upright, core engaged',
+            'Lower yourself by bending elbows until upper arms parallel to ground',
+            'Keep elbows close to body',
+            'Press back up to starting position',
+            'Don\'t lock out elbows too hard at top'
+          ],
+          tips: [
+            'Lean slightly forward for more chest activation, upright for more triceps',
+            'Don\'t drop too low - 90 degrees is sufficient',
+            'If too difficult, use resistance band for assistance',
+            'Control the descent - don\'t drop down'
+          ],
+          video: 'https://youtube.com/watch?v=2z8JmcrW-As',
+          targetMuscles: ['Triceps', 'Chest', 'Anterior Deltoids'],
+          sets: '3-4 sets to failure'
+        },
+        {
+          id: 'hammer-curls',
+          name: 'Hammer Curls',
+          difficulty: 'Beginner',
+          equipment: 'Dumbbells',
+          instructions: [
+            'Stand with dumbbells at sides, palms facing each other',
+            'Keep elbows close to torso',
+            'Curl dumbbells up toward shoulders',
+            'Maintain neutral grip (palms facing each other) throughout',
+            'Squeeze at top',
+            'Lower with control'
+          ],
+          tips: [
+            'Don\'t rotate wrists - keep thumbs pointing up',
+            'Alternate arms or do both together',
+            'Hammer grip emphasizes brachialis and forearms',
+            'Keep upper arms stationary'
+          ],
+          video: 'https://youtube.com/watch?v=zC3nLlEvin4',
+          targetMuscles: ['Brachialis', 'Biceps Brachii', 'Forearms'],
+          sets: '3-4 sets of 10-15 reps'
+        }
+      ],
+      legs: [
+        {
+          id: 'back-squat',
+          name: 'Barbell Back Squat',
+          difficulty: 'Intermediate',
+          equipment: 'Barbell, Squat Rack',
+          instructions: [
+            'Position bar on upper traps/rear delts (high bar) or lower on rear delts (low bar)',
+            'Unrack and step back with feet shoulder-width apart',
+            'Toes slightly pointed out',
+            'Break at knees and hips simultaneously',
+            'Descend until thighs are parallel or below',
+            'Drive through heels to stand back up',
+            'Keep chest up and core braced throughout'
+          ],
+          tips: [
+            'Knees should track over toes - don\'t let them cave in',
+            'Depth is important - aim for thighs parallel or below',
+            'Keep weight on mid-foot and heels',
+            'Big breath and brace before each rep'
+          ],
+          video: 'https://youtube.com/watch?v=ultWZbUMPL8',
+          targetMuscles: ['Quadriceps', 'Glutes', 'Hamstrings', 'Core'],
+          sets: '3-5 sets of 5-10 reps'
+        },
+        {
+          id: 'romanian-deadlift',
+          name: 'Romanian Deadlift',
+          difficulty: 'Intermediate',
+          equipment: 'Barbell',
+          instructions: [
+            'Start standing with barbell at hip level',
+            'Feet hip-width apart, slight knee bend',
+            'Push hips back while lowering bar down shins',
+            'Keep bar close to legs throughout',
+            'Lower until you feel stretch in hamstrings',
+            'Drive hips forward to return to start position',
+            'Maintain flat back and engaged core'
+          ],
+          tips: [
+            'This is a hip-hinge movement, not a squat',
+            'Feel the stretch in hamstrings',
+            'Don\'t round your back',
+            'Bar should travel in straight vertical line'
+          ],
+          video: 'https://youtube.com/watch?v=2SHsk9AzdjA',
+          targetMuscles: ['Hamstrings', 'Glutes', 'Lower Back'],
+          sets: '3-4 sets of 8-12 reps'
+        },
+        {
+          id: 'bulgarian-split-squat',
+          name: 'Bulgarian Split Squat',
+          difficulty: 'Intermediate',
+          equipment: 'Bench, Dumbbells (optional)',
+          instructions: [
+            'Place rear foot on bench behind you',
+            'Step forward with front foot into split stance',
+            'Hold dumbbells at sides or just bodyweight',
+            'Lower down by bending front knee',
+            'Keep torso upright, chest up',
+            'Descend until front thigh is parallel to ground',
+            'Drive through front heel to return to start'
+          ],
+          tips: [
+            'Front knee should track over toes, not past them',
+            'Most weight should be on front leg',
+            'This is excellent for balance and unilateral strength',
+            'Start with bodyweight before adding dumbbells'
+          ],
+          video: 'https://youtube.com/watch?v=2C-uNgKwPLE',
+          targetMuscles: ['Quadriceps', 'Glutes', 'Hamstrings'],
+          sets: '3-4 sets of 10-12 reps per leg'
+        },
+        {
+          id: 'leg-press',
+          name: 'Leg Press',
+          difficulty: 'Beginner',
+          equipment: 'Leg Press Machine',
+          instructions: [
+            'Sit in leg press machine with back against pad',
+            'Place feet shoulder-width apart on platform',
+            'Release safety handles',
+            'Lower platform by bending knees toward chest',
+            'Stop when knees are at 90 degrees',
+            'Press through heels to extend legs',
+            'Don\'t lock out knees completely at top'
+          ],
+          tips: [
+            'Keep lower back pressed into pad - don\'t let it round',
+            'Don\'t let knees cave inward',
+            'Controlled descent is important',
+            'Adjust foot position: higher=more glutes, lower=more quads'
+          ],
+          video: 'https://youtube.com/watch?v=IZxyjW7MPJQ',
+          targetMuscles: ['Quadriceps', 'Glutes', 'Hamstrings'],
+          sets: '3-4 sets of 10-15 reps'
+        }
+      ],
+      core: [
+        {
+          id: 'plank',
+          name: 'Plank',
+          difficulty: 'Beginner',
+          equipment: 'Bodyweight',
+          instructions: [
+            'Start in forearm plank position',
+            'Elbows directly under shoulders',
+            'Body forms straight line from head to heels',
+            'Engage core by pulling belly button toward spine',
+            'Squeeze glutes',
+            'Hold position without letting hips sag or pike up',
+            'Maintain neutral neck position'
+          ],
+          tips: [
+            'Quality over duration - maintain perfect form',
+            'Breathe normally, don\'t hold breath',
+            'If hips start sagging, end the set',
+            'Progress by increasing time or adding variations'
+          ],
+          video: 'https://youtube.com/watch?v=ASdvN_XEl_c',
+          targetMuscles: ['Rectus Abdominis', 'Transverse Abdominis', 'Obliques'],
+          sets: '3-4 sets of 30-60 seconds'
+        },
+        {
+          id: 'russian-twist',
+          name: 'Russian Twists',
+          difficulty: 'Beginner',
+          equipment: 'Medicine Ball or Dumbbell (optional)',
+          instructions: [
+            'Sit on ground with knees bent, feet off floor',
+            'Lean back slightly, maintaining straight spine',
+            'Hold weight at chest or clasp hands together',
+            'Rotate torso to one side, bringing weight toward ground',
+            'Return to center',
+            'Rotate to other side',
+            'Continue alternating sides'
+          ],
+          tips: [
+            'Move with control - don\'t use momentum',
+            'Keep core engaged throughout',
+            'If too difficult, keep feet on ground',
+            'Focus on rotating from torso, not just moving arms'
+          ],
+          video: 'https://youtube.com/watch?v=wkD8rjkodUI',
+          targetMuscles: ['Obliques', 'Rectus Abdominis'],
+          sets: '3-4 sets of 20-30 twists (10-15 per side)'
+        },
+        {
+          id: 'dead-bug',
+          name: 'Dead Bug',
+          difficulty: 'Beginner',
+          equipment: 'Bodyweight',
+          instructions: [
+            'Lie on back with arms extended toward ceiling',
+            'Lift legs with knees bent at 90 degrees',
+            'Press lower back into floor',
+            'Slowly extend right arm overhead while straightening left leg',
+            'Return to start position',
+            'Repeat on opposite side',
+            'Alternate sides while keeping lower back pressed down'
+          ],
+          tips: [
+            'Move slowly and with control',
+            'Never let lower back arch off ground',
+            'Breathe out as you extend limbs',
+            'This is excellent for core stability and coordination'
+          ],
+          video: 'https://youtube.com/watch?v=g_BYB0R-4Ws',
+          targetMuscles: ['Transverse Abdominis', 'Rectus Abdominis', 'Hip Flexors'],
+          sets: '3-4 sets of 10-12 reps per side'
+        },
+        {
+          id: 'hanging-knee-raise',
+          name: 'Hanging Knee Raises',
+          difficulty: 'Intermediate',
+          equipment: 'Pull-up Bar',
+          instructions: [
+            'Hang from pull-up bar with arms fully extended',
+            'Engage core and keep shoulders stable',
+            'Bring knees up toward chest by flexing hips',
+            'Control the movement - don\'t swing',
+            'Lower legs back down with control',
+            'Avoid momentum and kipping'
+          ],
+          tips: [
+            'Initiate movement with core, not hip flexors',
+            'Keep shoulders engaged - don\'t just hang',
+            'For more challenge, keep legs straight (hanging leg raises)',
+            'Can use captain\'s chair if hanging is too difficult'
+          ],
+          video: 'https://youtube.com/watch?v=Pr1ieGZ5atk',
+          targetMuscles: ['Rectus Abdominis', 'Hip Flexors', 'Obliques'],
+          sets: '3-4 sets of 10-15 reps'
+        }
+      ],
+      glutes: [
+        {
+          id: 'hip-thrust',
+          name: 'Barbell Hip Thrust',
+          difficulty: 'Intermediate',
+          equipment: 'Barbell, Bench',
+          instructions: [
+            'Sit on ground with upper back against bench',
+            'Roll barbell over hips (use pad for comfort)',
+            'Plant feet flat on ground, knees bent',
+            'Drive through heels to lift hips toward ceiling',
+            'Squeeze glutes hard at top',
+            'Upper back should be on bench, body forms straight line',
+            'Lower hips back down with control'
+          ],
+          tips: [
+            'Keep chin tucked - look at knees, not ceiling',
+            'Full hip extension at top is crucial',
+            'Push through heels, not toes',
+            'This is one of the best glute-building exercises'
+          ],
+          video: 'https://youtube.com/watch?v=SEdqd1n0cvg',
+          targetMuscles: ['Glutes', 'Hamstrings', 'Core'],
+          sets: '3-4 sets of 8-12 reps'
+        },
+        {
+          id: 'glute-bridge',
+          name: 'Glute Bridge',
+          difficulty: 'Beginner',
+          equipment: 'Bodyweight or Barbell',
+          instructions: [
+            'Lie on back with knees bent, feet flat on ground',
+            'Feet should be hip-width apart',
+            'Drive through heels to lift hips off ground',
+            'Squeeze glutes at top',
+            'Body should form straight line from shoulders to knees',
+            'Lower back down with control'
+          ],
+          tips: [
+            'Don\'t hyperextend lower back - focus on glute squeeze',
+            'Keep core engaged',
+            'For added resistance, place barbell across hips',
+            'Can be done single-leg for more difficulty'
+          ],
+          video: 'https://youtube.com/watch?v=OUgsJ8-Vi0E',
+          targetMuscles: ['Glutes', 'Hamstrings', 'Core'],
+          sets: '3-4 sets of 12-15 reps'
+        }
+      ]
+    };
+
+    const MUSCLE_GROUPS = [
+      { id: 'chest', name: 'Chest', icon: '💪', description: 'Pectorals' },
+      { id: 'back', name: 'Back', icon: '🔙', description: 'Lats, Traps, Rhomboids' },
+      { id: 'shoulders', name: 'Shoulders', icon: '🏋️', description: 'Deltoids' },
+      { id: 'arms', name: 'Arms', icon: '💪', description: 'Biceps, Triceps' },
+      { id: 'legs', name: 'Legs', icon: '🦵', description: 'Quads, Hamstrings' },
+      { id: 'core', name: 'Core', icon: '⭕', description: 'Abs, Obliques' },
+      { id: 'glutes', name: 'Glutes', icon: '🍑', description: 'Gluteus Maximus' }
+    ];
+
+    function GymApp() {
+      const [selectedMuscles, setSelectedMuscles] = useState([]);
+      const [selectedExercise, setSelectedExercise] = useState(null);
+      const [view, setView] = useState('home');
+      const [showIntro, setShowIntro] = useState(true);
+
+      useEffect(() => {
+        const timer = setTimeout(() => setShowIntro(false), 1000);
+        lucide.createIcons();
+        return () => clearTimeout(timer);
+      }, []);
+
+      useEffect(() => {
+        lucide.createIcons();
+      });
+
+      const toggleMuscle = (muscleId) => {
+        setSelectedMuscles(prev =>
+          prev.includes(muscleId)
+            ? prev.filter(m => m !== muscleId)
+            : [...prev, muscleId]
+        );
+      };
+
+      const getExercisesForSelectedMuscles = () => {
+        if (selectedMuscles.length === 0) return [];
+        return selectedMuscles.flatMap(muscle => 
+          EXERCISES[muscle].map(ex => ({ ...ex, muscleGroup: muscle }))
+        );
+      };
+
+      const getDifficultyColor = (difficulty) => {
+        switch(difficulty) {
+          case 'Beginner': return 'bg-emerald-500/20 text-emerald-300';
+          case 'Intermediate': return 'bg-amber-500/20 text-amber-300';
+          case 'Advanced': return 'bg-rose-500/20 text-rose-300';
+          default: return 'bg-gray-500/20 text-gray-300';
+        }
+      };
+
+      if (showIntro) {
+        return (
+          <div className="min-h-screen bg-black flex items-center justify-center">
+            <div className="text-center animate-pulse">
+              <i data-lucide="dumbbell" className="w-20 h-20 text-red-500 mx-auto mb-4"></i>
+              <h1 className="text-4xl font-bold text-white" style={{ fontFamily: 'Bebas Neue, Impact, sans-serif' }}>
+                GYMFLOW
+              </h1>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-black text-white" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+          <header className="border-b border-zinc-800 bg-black/95 backdrop-blur-sm sticky top-0 z-50">
+            <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <i data-lucide="dumbbell" className="w-7 h-7 text-red-500"></i>
+                <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'Bebas Neue, Impact, sans-serif', letterSpacing: '1px' }}>
+                  GYMFLOW
+                </h1>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setView('home'); setSelectedExercise(null); }}
+                  className={`p-2 rounded-lg transition-colors ${view === 'home' ? 'bg-red-500 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                >
+                  <i data-lucide="home" className="w-5 h-5"></i>
+                </button>
+                <button
+                  onClick={() => { setView('info'); setSelectedExercise(null); }}
+                  className={`p-2 rounded-lg transition-colors ${view === 'info' ? 'bg-red-500 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                >
+                  <i data-lucide="info" className="w-5 h-5"></i>
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-4xl mx-auto px-4 pb-24">
+            {view === 'home' && !selectedExercise && (
+              <div className="pt-8 space-y-8">
+                <div className="text-center space-y-3">
+                  <h2 className="text-5xl font-bold tracking-tight" style={{ fontFamily: 'Bebas Neue, Impact, sans-serif' }}>
+                    BUILD YOUR<br/>WORKOUT
+                  </h2>
+                  <p className="text-zinc-400 text-lg max-w-md mx-auto">
+                    Select muscle groups to get personalized exercise recommendations with detailed instructions
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold tracking-wide" style={{ fontFamily: 'Bebas Neue, Impact, sans-serif' }}>
+                      SELECT MUSCLES
+                    </h3>
+                    {selectedMuscles.length > 0 && (
+                      <button
+                        onClick={() => setSelectedMuscles([])}
+                        className="text-sm text-zinc-400 hover:text-white transition-colors"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {MUSCLE_GROUPS.map(muscle => (
+                      <button
+                        key={muscle.id}
+                        onClick={() => toggleMuscle(muscle.id)}
+                        className={`p-5 rounded-2xl border-2 transition-all duration-300 text-left ${
+                          selectedMuscles.includes(muscle.id)
+                            ? 'border-red-500 bg-red-500/10 shadow-lg shadow-red-500/20'
+                            : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="text-3xl">{muscle.icon}</span>
+                          <div className="flex-1">
+                            <h4 className="font-bold text-lg mb-1">{muscle.name}</h4>
+                            <p className="text-sm text-zinc-500">{muscle.description}</p>
+                          </div>
+                          {selectedMuscles.includes(muscle.id) && (
+                            <i data-lucide="target" className="w-5 h-5 text-red-500 flex-shrink-0"></i>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedMuscles.length > 0 && (
+                  <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black to-transparent">
+                    <div className="max-w-4xl mx-auto">
+                      <button
+                        onClick={() => setView('exercises')}
+                        className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg shadow-red-500/30 hover:shadow-red-500/50 flex items-center justify-center gap-2"
+                        style={{ fontFamily: 'Bebas Neue, Impact, sans-serif', letterSpacing: '1px', fontSize: '18px' }}
+                      >
+                        <i data-lucide="list" className="w-5 h-5"></i>
+                        VIEW {getExercisesForSelectedMuscles().length} EXERCISES
+                        <i data-lucide="chevron-right" className="w-5 h-5"></i>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {view === 'exercises' && !selectedExercise && (
+              <div className="pt-8 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-3xl font-bold tracking-tight" style={{ fontFamily: 'Bebas Neue, Impact, sans-serif' }}>
+                      YOUR EXERCISES
+                    </h2>
+                    <p className="text-zinc-400 mt-1">
+                      {getExercisesForSelectedMuscles().length} exercises for {selectedMuscles.join(', ')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setView('home')}
+                    className="text-sm text-zinc-400 hover:text-white transition-colors"
+                  >
+                    ← Back
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {getExercisesForSelectedMuscles().map((exercise, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => { setSelectedExercise(exercise); setView('detail'); }}
+                      className="w-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl p-5 transition-all duration-300 text-left group"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg mb-2 group-hover:text-red-500 transition-colors">
+                            {exercise.name}
+                          </h3>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <span className={`text-xs px-2 py-1 rounded-full ${getDifficultyColor(exercise.difficulty)}`}>
+                              {exercise.difficulty}
+                            </span>
+                            <span className="text-xs px-2 py-1 rounded-full bg-zinc-800 text-zinc-300">
+                              {exercise.equipment}
+                            </span>
+                          </div>
+                          <p className="text-sm text-zinc-400">
+                            {exercise.targetMuscles.join(', ')}
+                          </p>
+                        </div>
+                        <i data-lucide="chevron-right" className="w-5 h-5 text-zinc-600 group-hover:text-red-500 transition-colors flex-shrink-0 mt-1"></i>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {view === 'detail' && selectedExercise && (
+              <div className="pt-8 pb-8 space-y-6">
+                <button
+                  onClick={() => { setSelectedExercise(null); setView('exercises'); }}
+                  className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2 mb-4"
+                >
+                  ← Back to exercises
+                </button>
+
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-4xl font-bold mb-3 tracking-tight" style={{ fontFamily: 'Bebas Neue, Impact, sans-serif' }}>
+                      {selectedExercise.name}
+                    </h2>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className={`text-sm px-3 py-1 rounded-full ${getDifficultyColor(selectedExercise.difficulty)}`}>
+                        {selectedExercise.difficulty}
+                      </span>
+                      <span className="text-sm px-3 py-1 rounded-full bg-zinc-800 text-zinc-300">
+                        {selectedExercise.equipment}
+                      </span>
+                    </div>
+                    <p className="text-zinc-400">
+                      <strong className="text-white">Target Muscles:</strong> {selectedExercise.targetMuscles.join(', ')}
+                    </p>
+                    <p className="text-zinc-400 mt-1">
+                      <strong className="text-white">Recommended:</strong> {selectedExercise.sets}
+                    </p>
+                  </div>
+
+                  <a
+                    href={selectedExercise.video}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 bg-red-500/10 border-2 border-red-500/30 rounded-xl p-4 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-300 group"
+                  >
+                    <i data-lucide="play-circle" className="w-6 h-6 text-red-500 group-hover:scale-110 transition-transform"></i>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-white mb-1">Watch Video Tutorial</h4>
+                      <p className="text-sm text-zinc-400">See proper form and technique</p>
+                    </div>
+                    <i data-lucide="chevron-right" className="w-5 h-5 text-red-500"></i>
+                  </a>
+
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                    <h3 className="text-xl font-bold mb-4 tracking-wide" style={{ fontFamily: 'Bebas Neue, Impact, sans-serif' }}>
+                      STEP-BY-STEP INSTRUCTIONS
+                    </h3>
+                    <ol className="space-y-3">
+                      {selectedExercise.instructions.map((instruction, idx) => (
+                        <li key={idx} className="flex gap-3">
+                          <span className="flex-shrink-0 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            {idx + 1}
+                          </span>
+                          <p className="text-zinc-300 pt-0.5">{instruction}</p>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+
+                  <div className="bg-amber-500/5 border-2 border-amber-500/20 rounded-xl p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <i data-lucide="alert-circle" className="w-5 h-5 text-amber-500"></i>
+                      <h3 className="text-xl font-bold tracking-wide text-amber-500" style={{ fontFamily: 'Bebas Neue, Impact, sans-serif' }}>
+                        PRO TIPS
+                      </h3>
+                    </div>
+                    <ul className="space-y-2">
+                      {selectedExercise.tips.map((tip, idx) => (
+                        <li key={idx} className="flex gap-3 text-zinc-300">
+                          <span className="text-amber-500 flex-shrink-0">•</span>
+                          <p>{tip}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {view === 'info' && (
+              <div className="pt-8 space-y-6">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2 tracking-tight" style={{ fontFamily: 'Bebas Neue, Impact, sans-serif' }}>
+                    ABOUT GYMFLOW
+                  </h2>
+                  <p className="text-zinc-400">Your personal workout guide</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                    <h3 className="font-bold text-lg mb-2">How It Works</h3>
+                    <ol className="space-y-2 text-zinc-400">
+                      <li>1. Select the muscle groups you want to train</li>
+                      <li>2. Browse through curated exercises for those muscles</li>
+                      <li>3. Get detailed instructions, form tips, and video tutorials</li>
+                      <li>4. Build your perfect workout routine</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                    <h3 className="font-bold text-lg mb-2">Features</h3>
+                    <ul className="space-y-2 text-zinc-400">
+                      <li>✓ Comprehensive exercise database</li>
+                      <li>✓ Detailed step-by-step instructions</li>
+                      <li>✓ Pro tips for perfect form</li>
+                      <li>✓ Video tutorial links</li>
+                      <li>✓ Difficulty levels for all fitness stages</li>
+                      <li>✓ Target muscle breakdowns</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-red-500/10 border-2 border-red-500/30 rounded-xl p-6">
+                    <h3 className="font-bold text-lg mb-2 text-red-500">Safety First</h3>
+                    <p className="text-zinc-300 mb-2">
+                      Always prioritize proper form over heavy weight. If you're new to exercise, consider working with a certified personal trainer to ensure you're performing movements safely.
+                    </p>
+                    <p className="text-zinc-400 text-sm">
+                      Consult with a healthcare professional before starting any new exercise program.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<GymApp />);
+  </script>
+</body>
+</html>
